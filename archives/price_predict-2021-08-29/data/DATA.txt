@@ -1,0 +1,11 @@
+Bitcoin historical data was downloaded from investing.com, which had daily price information dating back to July 18th, 2010.
+
+
+print(10000)
+
+# */10 * * * * * cd /Users/dan/projects/price_predict/data/cryptos && /Users/dan/opt/anaconda3/bin/python3 test.py >> /Users/dan/projects/price_predict/data/cryptos/cron_logs/stdout.log 
+
+# 0 <hour> * * * # Every day at military-time hour
+#     0 10 * * * # Every day at 10am
+
+0 10 * * * time=$(date +"%F@%H%M") cd /Users/dan/projects/price_predict/data/cryptos && touch cron_logs/$time.log && /Users/dan/opt/anaconda3/bin/python3 pipeline.py >> /Users/dan/projects/price_predict/data/cryptos/cron_logs/$time.log
