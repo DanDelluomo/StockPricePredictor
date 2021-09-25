@@ -56,57 +56,32 @@ def covert_yahoo_series_dir(path: str, prediction_length: int) -> list:
         coin.dropna(inplace=True)
         if len(coin) < 100:
             continue
-        coin.index = pd.DatetimeIndex(coin.index).to_period("D")
-        coin["Yesterday_Close"] = coin["Close"].shift(1)
-        coin["Yesterday_High"] = coin["High"].shift(1)
-        coin["Yesterday_Low"] = coin["Low"].shift(1)
-        coin["Yesterday_Spread"] = (
-            coin["Yesterday_High"] - coin["Yesterday_Low"]
-        ) / coin["Yesterday_Close"]
-        coin["dayofweek"] = coin.index.dayofweek
-        coin = coin[1:]
-        coin["TripleExp"] = (
-            ExponentialSmoothing(
-                coin["Yesterday_Close"], trend="add", seasonal="add", seasonal_periods=7
-            )
-            .fit()
-            .fittedvalues
-        )
         coin = coin.asfreq("D")
 
-        #         x = coin.values #returns a numpy array
-        #         min_max_scaler = preprocessing.MinMaxScaler()
-        #         x_scaled = min_max_scaler.fit_transform(x)
-        #         new_columnless_frame = pd.DataFrame(x_scaled)
-        #         new_columnless_frame.columns = coin.columns
-        #         coin = new_columnless_frame
-
+        # Get values for ListDatasets
         coin_closes = coin["Close"]
+        coin_closes.index = pd.DatetimeIndex(coin_closes.index)
         coin_closes = coin_closes.asfreq("D")
-        coin_gluon_dict["target_test"] = coin_closes
-        coin_closes = coin["Close"][:-prediction_length]
-        coin_closes = coin_closes.asfreq("D")
-        coin_gluon_dict["start"] = coin_closes.index[0].to_timestamp()
-        coin_gluon_dict["target"] = coin_closes
+        print(coin_closes.index)
+        start = coin_closes.index[0]
 
-        coin_features_train = coin[
-            ["Yesterday_Close", "Yesterday_Spread", "dayofweek", "TripleExp"]
-        ]
-        coin_features_train = coin_features_train[:-prediction_length]
-        coin_features_train = coin_features_train.asfreq("D")
-        coin_features_predict = coin[
-            ["Yesterday_Close", "Yesterday_Spread", "dayofweek", "TripleExp"]
-        ]
-        coin_features_predict = coin_features_predict.asfreq("D")
+        coin_gluon_dict["test"] = {
+            "start": start,
+            "target": coin_closes,
+            "name": file,
+        }
 
-        coin_features_train = coin_features_train.values
-        coin_features_train = coin_features_train.T
+        coin_gluon_dict["validation"] = {
+            "start": start,
+            "target": coin_closes[:-30],
+            "name": file,
+        }
 
-        coin_features_predict = coin_features_predict.values
-        coin_features_predict = coin_features_predict.T
-
-        coin_gluon_dict["feat_dynamic_real"] = coin_features_train
-        coin_gluon_dict["feat_dynamic_real_predict"] = coin_features_predict
+        coin_gluon_dict["train"] = {
+            "start": start,
+            "target": coin_closes[:-60],
+            "name": file,
+        }
 
         gluon_list.append(coin_gluon_dict)
 
