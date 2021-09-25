@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Python Standard Library Modules
 import os
 import pathlib
@@ -5,32 +7,28 @@ import sys
 import warnings
 
 # External Libraries
-
-from hyperopt import STATUS_OK, Trials, fmin, hp, tpe
-from hyperopt.pyll import scope
 from gluonts.dataset import common
 from gluonts.model import deepar
-import mxnet as mx
+from gluonts.mx.trainer import Trainer
+from hyperopt import fmin, hp, tpe, STATUS_OK, Trials
+from hyperopt.pyll import scope
 import keras
-from keras.preprocessing.sequence import TimeseriesGenerator
-from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
 from keras.models import load_model
+from keras.models import Sequential
+from keras.preprocessing.sequence import TimeseriesGenerator
 import matplotlib
 import matplotlib.pyplot as plt
+import mxnet as mx
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
+from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import seasonal_decompose
-from statsmodels.tsa.stattools import adfuller
-from gluonts.dataset import common
-from gluonts.model import deepar
-from gluonts.mx.trainer import Trainer
-
 
 warnings.filterwarnings("ignore")
 mx.random.seed(0)
@@ -72,7 +70,7 @@ adjust = adjust.T
 
 
 def covert_yahoo_series_dir(path: str, prediction_length: int) -> list:
-    """Clean and load all the coins in the Yahoo Finance folder
+    """Clean and load all coin histories in the Yahoo Finance folder
 
     Params:
         path: folder full of historical crypto coins timeseries data
