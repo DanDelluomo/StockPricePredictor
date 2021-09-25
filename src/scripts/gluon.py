@@ -12,12 +12,6 @@ from gluonts.model import deepar
 from gluonts.mx.trainer import Trainer
 from hyperopt import fmin, hp, tpe, STATUS_OK, Trials
 from hyperopt.pyll import scope
-import keras
-from keras.layers import Dense
-from keras.layers import LSTM
-from keras.models import load_model
-from keras.models import Sequential
-from keras.preprocessing.sequence import TimeseriesGenerator
 import matplotlib
 import matplotlib.pyplot as plt
 import mxnet as mx
@@ -38,35 +32,6 @@ prediction_length = 30
 validation_length = 30
 if validation_length:
     prediction_length = prediction_length + validation_length
-
-
-
-dyn_btc_history = btc_history[
-    ["Yesterday_Close", "Yesterday_Spread", "dayofweek", "TripleExp"]
-]
-dyn_btc_history = dyn_btc_history.iloc[:-prediction_length]
-dyn_btc_history = dyn_btc_history.values
-
-# For Gluon feat_dynamic_real features: test
-test_adjust = btc_history[
-    ["Yesterday_Close", "Yesterday_Spread", "dayofweek", "TripleExp"]
-]
-test_adjust = test_adjust.values
-test_adjust = test_adjust.T
-
-# For Gluon feat_dynamic_real features: validation_data
-val_adjust = btc_history[
-    ["Yesterday_Close", "Yesterday_Spread", "dayofweek", "TripleExp"]
-][:-validation_length]
-val_adjust = val_adjust.values
-val_adjust = val_adjust.T
-
-# For Gluon feat_dynamic_real features: train
-adjust = btc_history[["Yesterday_Close", "Yesterday_Spread", "dayofweek", "TripleExp"]][
-    :-prediction_length
-]
-adjust = adjust.values
-adjust = adjust.T
 
 
 def covert_yahoo_series_dir(path: str, prediction_length: int) -> list:
