@@ -4,32 +4,35 @@ import pathlib
 import sys
 import warnings
 
-import keras
-import matplotlib
-import matplotlib.pyplot as plt
-import mxnet as mx
-import numpy as np
-import pandas as pd
-from gluonts.dataset import common
-from gluonts.model import deepar
-from gluonts.mx.trainer import Trainer
+# External Libraries
+
 from hyperopt import STATUS_OK, Trials, fmin, hp, tpe
 from hyperopt.pyll import scope
-from keras.layers import LSTM, Dense
-from keras.models import Sequential, load_model
+from gluonts.dataset import common
+from gluonts.model import deepar
+import mxnet as mx
+import keras
 from keras.preprocessing.sequence import TimeseriesGenerator
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.models import load_model
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from sklearn import preprocessing
-from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
+from gluonts.dataset import common
+from gluonts.model import deepar
+from gluonts.mx.trainer import Trainer
 
-# External Libraries
 
-
-
-warnings.filterwarnings("always")
+warnings.filterwarnings("ignore")
 mx.random.seed(0)
 np.random.seed(0)
 
@@ -38,32 +41,6 @@ validation_length = 30
 if validation_length:
     prediction_length = prediction_length + validation_length
 
-
-btc_history = pd.read_csv("Gemini_Bitcoin_Historical.csv")
-btc_history = btc_history[::-1]
-btc_history = btc_history.drop(["Unix Timestamp", "Symbol"], axis=1)
-btc_history["Date"] = pd.to_datetime(btc_history["Date"])
-btc_history.set_index("Date", inplace=True)
-btc_history.index.freq = "D"
-btc_history["Yesterday_Volume"] = btc_history["Volume"].shift(1)
-btc_history["Yesterday_Volume"] = btc_history["Volume"].shift(1)
-btc_history["Yesterday_Close"] = btc_history["Close"].shift(1)
-btc_history["Yesterday_High"] = btc_history["High"].shift(1)
-btc_history["Yesterday_Low"] = btc_history["Low"].shift(1)
-btc_history["Yesterday_Spread"] = (
-    btc_history["Yesterday_High"] - btc_history["Yesterday_Low"]
-) / btc_history["Yesterday_Close"]
-btc_history["dayofweek"] = btc_history.index.dayofweek
-btc_history = btc_history[1:]
-btc_history["TripleExp"] = (
-    ExponentialSmoothing(
-        btc_history["Yesterday_Close"], trend="mul", seasonal="mul", seasonal_periods=7
-    )
-    .fit()
-    .fittedvalues
-)
-
-btc_closes = btc_history["Close"]
 
 
 dyn_btc_history = btc_history[
@@ -114,7 +91,7 @@ def covert_yahoo_series_dir(path: str, prediction_length: int) -> list:
         coin["Date"] = pd.to_datetime(coin["Date"])
         coin.set_index("Date", inplace=True)
         coin.dropna(inplace=True)
-        if len(coin) == 0:
+        if len(coin) < 100:
             continue
         coin.index = pd.DatetimeIndex(coin.index).to_period("D")
         coin["Yesterday_Close"] = coin["Close"].shift(1)
@@ -191,7 +168,6 @@ test_data = common.ListDataset(
         {
             "start": test.index[0],
             "target": train["Close"],
-            "feat_dynamic_real": test_adjust,
         },
     ],
     freq="D",
@@ -202,7 +178,6 @@ data = common.ListDataset(
         {
             "start": train.index[0],
             "target": train["Close"],
-            "feat_dynamic_real": adjust,
         },
     ],
     freq="D",
@@ -213,7 +188,6 @@ validation_data = common.ListDataset(
         {
             "start": test.index[0],
             "target": test["Close"][:-validation_length],
-            "feat_dynamic_real": val_adjust,
         }
     ],
     freq="D",
@@ -224,7 +198,6 @@ for coin_gluon_dict in gluon_list:
     new_dict = dict()
     new_dict["start"] = coin_gluon_dict["start"]
     new_dict["target"] = coin_gluon_dict["target"][:-30]
-    new_dict["feat_dynamic_real"] = coin_gluon_dict["feat_dynamic_real_predict"]
     test_data.list_data.append(new_dict)
 
 # Hyperopt :
