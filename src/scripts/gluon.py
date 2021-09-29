@@ -8,6 +8,7 @@ import warnings
 
 # External Libraries
 from gluonts.dataset import common
+from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model import deepar
 from gluonts.mx.trainer import Trainer
 from hyperopt import fmin, hp, tpe, STATUS_OK, Trials
@@ -48,9 +49,6 @@ def covert_yahoo_series_dir(path: str, prediction_length: int) -> list:
         coin_gluon_dict = dict()
         file_path = path + file
         coin = pd.read_csv(file_path)
-        na_vals = coin.isna().sum()[0]
-        if na_vals > 0:
-            print(f"{file[:-4]} has {na_vals} NA rows")
         coin["Date"] = pd.to_datetime(coin["Date"])
         coin.set_index("Date", inplace=True)
         coin.dropna(inplace=True)
@@ -62,7 +60,6 @@ def covert_yahoo_series_dir(path: str, prediction_length: int) -> list:
         coin_closes = coin["Close"]
         coin_closes.index = pd.DatetimeIndex(coin_closes.index)
         coin_closes = coin_closes.asfreq("D")
-        print(coin_closes.index)
         start = coin_closes.index[0]
 
         coin_gluon_dict["test"] = {
@@ -157,17 +154,34 @@ predictor = estimator.train(
     #     validation_data=validation_data
 )
 
-prediction = next(predictor.predict(test_data))
-print(prediction.mean)
+mx.random.seed(0)
+global_loss = 0
+predictions = predictor.predict(train_data.list_data)
+for index, value in enumerate(range(len(gluon_list))):
+    prediction = next(predictions)
+    name = test_data.list_data[index]['name']
+    # Skip graphs with absurd loss, stablecoins etc.
+    if name in {"USDT-USD.csv", "CCXX-USD.csv", "TUSD-USD.csv"}:
+        continue
+    print(name)
+    full_actual = test_data.list_data[index]['target']
+    actual = full_actual[-30:]
+    preds = pd.Series(prediction.mean)
+    preds.index = actual.index
+    plt.figure()
+    preds.plot(legend=True, label=f"{name} PREDICTED")
+    actual.plot(legend=True, label=f"{name} ACTUAL")
+    plt.show()
 
-
-fig, ax = plt.subplots()
-actual = test[-prediction_length:].Close
-ax.plot(actual, label="Actual")
-preds = pd.Series(prediction.mean)
-preds.index = test[-prediction_length:].index
-ax.plot(preds, label="Prediction")
-leg = ax.legend()
-
-mse = mean_squared_error(test[-prediction_length:].Close, prediction.mean)
-print(f"Mean Squared Error of Model: {mse}")
+    # SCALING
+    scaler = MinMaxScaler()
+    scaled_actual = np.array(actual)
+    scaler.fit([scaled_actual])
+    scaled_actual = scaler.fit_transform(np.array(scaled_actual[:, np.newaxis]))
+    scaled_preds = scaler.transform([preds])
+    scaled_preds = scaled_preds.reshape(-1, 1)
+    mse = mean_squared_error(scaled_actual, scaled_preds)
+    print(f"mse: {mse}")
+    global_loss += mse
+    
+print(f"global_loss is {global_loss}")
