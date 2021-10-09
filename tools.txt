@@ -1,0 +1,2 @@
+# Get total rows in folder (and each file)
+find . -type f -name '*.csv' -exec wc -l {} +
